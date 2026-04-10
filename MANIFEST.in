@@ -1,0 +1,6 @@
+recursive-include python *
+recursive-include include *
+recursive-include src *
+include CMakeLists.txt
+include pyproject.toml
+include setup.py
