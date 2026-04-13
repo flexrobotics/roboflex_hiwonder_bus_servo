@@ -203,6 +203,14 @@ PYBIND11_MODULE(roboflex_hiwonder_bus_servo_ext, m) {
         .def_readonly("controller", &HiwonderBusServoGroupNode::controller)
         .def_readonly("read_config", &HiwonderBusServoGroupNode::read_config);
 
+    py::class_<HiwonderBusServoOneShotGroupNode, core::RunnableNode, std::shared_ptr<HiwonderBusServoOneShotGroupNode>>(m, "HiwonderBusServoOneShotGroupNode")
+        .def(py::init<std::shared_ptr<HiwonderBusServoController>, DynamicReadConfig, const std::string&>(),
+            py::arg("controller"),
+            py::arg("read_config"),
+            py::arg("name") = "HBSOneShotNode")
+        .def_readonly("controller", &HiwonderBusServoOneShotGroupNode::controller)
+        .def_readonly("read_config", &HiwonderBusServoOneShotGroupNode::read_config);
+
     py::class_<HiwonderBusServoRemoteController, core::Node, PyHiwonderBusServoRemoteController<>, std::shared_ptr<HiwonderBusServoRemoteController>>(m, "HiwonderBusServoRemoteController")
         .def(py::init<const std::string&>(),
             py::arg("name") = "HBSRemoteCtrl");

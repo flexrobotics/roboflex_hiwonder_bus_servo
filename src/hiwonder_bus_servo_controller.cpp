@@ -412,6 +412,9 @@ optional<std::vector<uint8_t>> HiwonderBusServoController::Impl::transact_bus_se
         if (function_id != kPacketFuncBusServo || response.size() < 3) {
             continue;
         }
+        if (response[0] != servo_id) {
+            continue;
+        }
         if (response[1] != cmd) {
             continue;
         }

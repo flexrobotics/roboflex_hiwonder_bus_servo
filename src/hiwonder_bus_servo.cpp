@@ -271,6 +271,49 @@ void HiwonderBusServoGroupNode::child_thread_fn() {
     this->controller->freeze();
 }
 
+HiwonderBusServoOneShotGroupNode::HiwonderBusServoOneShotGroupNode(
+    HiwonderBusServoController::Ptr controller,
+    DynamicReadConfig read_config,
+    const std::string& name) :
+        core::RunnableNode(name),
+        controller(controller),
+        read_config(read_config) {
+}
+
+void HiwonderBusServoOneShotGroupNode::receive(core::MessagePtr m) {
+    const std::lock_guard<std::recursive_mutex> lock(pending_command_message_mutex);
+    pending_command_message = std::make_shared<HiwonderBusServoGroupCommandMessage>(*m);
+}
+
+bool HiwonderBusServoOneShotGroupNode::readwrite_loop_function(
+    const HiwonderBusServoGroupState& state,
+    HiwonderBusServoGroupCommand& command) {
+    bool should_continue = !this->stop_requested();
+    if (should_continue) {
+        {
+            const std::lock_guard<std::recursive_mutex> lock(pending_command_message_mutex);
+            if (pending_command_message == nullptr) {
+                command.should_write = false;
+                command.positions.clear();
+            } else {
+                command = pending_command_message->get_command();
+                pending_command_message.reset();
+            }
+        }
+        this->signal(std::make_shared<HiwonderBusServoGroupStateMessage>(state));
+    }
+    return should_continue;
+}
+
+void HiwonderBusServoOneShotGroupNode::child_thread_fn() {
+    auto fn = [this](const HiwonderBusServoGroupState& state, HiwonderBusServoGroupCommand& command) {
+        return this->readwrite_loop_function(state, command);
+    };
+
+    this->controller->run_readwrite_loop(read_config, fn);
+    this->controller->freeze();
+}
+
 HiwonderBusServoRemoteController::HiwonderBusServoRemoteController(const std::string& name) :
     core::Node(name) {
 }

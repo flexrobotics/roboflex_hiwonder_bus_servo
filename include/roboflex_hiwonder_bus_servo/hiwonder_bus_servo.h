@@ -141,6 +141,37 @@ protected:
 };
 
 /**
+ * Local hardware node with one-shot command semantics.
+ *
+ * Unlike HiwonderBusServoGroupNode, this class consumes each received command
+ * at most once. This is a better fit for bus-servo hardware where callers
+ * typically want "send this timed move now" rather than "continuously re-send
+ * the last move forever until something else arrives".
+ */
+class HiwonderBusServoOneShotGroupNode : public core::RunnableNode {
+public:
+    HiwonderBusServoOneShotGroupNode(
+        HiwonderBusServoController::Ptr controller,
+        DynamicReadConfig read_config,
+        const std::string& name = "HBSOneShotNode");
+
+    HiwonderBusServoController::Ptr controller;
+    DynamicReadConfig read_config;
+
+    void receive(core::MessagePtr m) override;
+
+protected:
+    bool readwrite_loop_function(
+        const HiwonderBusServoGroupState& state,
+        HiwonderBusServoGroupCommand& command);
+
+    void child_thread_fn() override;
+
+    std::recursive_mutex pending_command_message_mutex;
+    std::shared_ptr<HiwonderBusServoGroupCommandMessage> pending_command_message = nullptr;
+};
+
+/**
  * Base class for remote-control patterns.
  *
  * This node receives state messages from a separate hardware-owning node and
