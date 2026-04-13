@@ -667,7 +667,10 @@ void HiwonderBusServoController::run_readwrite_loop(
 
     // This loop is intentionally asymmetric: writes can happen every pass,
     // while reads are scheduled independently because they are much costlier.
-    while (readwrite_loop_function(cached_state, command)) {
+    //
+    // The callback runs after the write/read work for the current iteration so
+    // nodes observe fresh state rather than the previous cycle's cached values.
+    while (true) {
         double t0 = wall_time_seconds();
 
         if (command.should_write && !command.positions.empty()) {
@@ -696,6 +699,12 @@ void HiwonderBusServoController::run_readwrite_loop(
 
         cached_state.timestamp = {t0, wall_time_seconds()};
         ++loop_index;
+
+        HiwonderBusServoGroupCommand next_command;
+        if (!readwrite_loop_function(cached_state, next_command)) {
+            break;
+        }
+        command = std::move(next_command);
 
         int sleep_ms = read_config.loop_sleep_ms > 0 ? read_config.loop_sleep_ms : loop_sleep_ms;
         if (sleep_ms > 0) {
