@@ -242,50 +242,11 @@ HiwonderBusServoGroupNode::HiwonderBusServoGroupNode(
 }
 
 void HiwonderBusServoGroupNode::receive(core::MessagePtr m) {
-    const std::lock_guard<std::recursive_mutex> lock(last_command_message_mutex);
-    last_command_message = std::make_shared<HiwonderBusServoGroupCommandMessage>(*m);
-}
-
-bool HiwonderBusServoGroupNode::readwrite_loop_function(
-    const HiwonderBusServoGroupState& state,
-    HiwonderBusServoGroupCommand& command) {
-    bool should_continue = !this->stop_requested();
-    if (should_continue) {
-        const std::lock_guard<std::recursive_mutex> lock(last_command_message_mutex);
-        if (last_command_message == nullptr) {
-            command.should_write = false;
-        } else {
-            command = last_command_message->get_command();
-        }
-        this->signal(std::make_shared<HiwonderBusServoGroupStateMessage>(state));
-    }
-    return should_continue;
-}
-
-void HiwonderBusServoGroupNode::child_thread_fn() {
-    auto fn = [this](const HiwonderBusServoGroupState& state, HiwonderBusServoGroupCommand& command) {
-        return this->readwrite_loop_function(state, command);
-    };
-
-    this->controller->run_readwrite_loop(read_config, fn);
-    this->controller->freeze();
-}
-
-HiwonderBusServoOneShotGroupNode::HiwonderBusServoOneShotGroupNode(
-    HiwonderBusServoController::Ptr controller,
-    DynamicReadConfig read_config,
-    const std::string& name) :
-        core::RunnableNode(name),
-        controller(controller),
-        read_config(read_config) {
-}
-
-void HiwonderBusServoOneShotGroupNode::receive(core::MessagePtr m) {
     const std::lock_guard<std::recursive_mutex> lock(pending_command_message_mutex);
     pending_command_message = std::make_shared<HiwonderBusServoGroupCommandMessage>(*m);
 }
 
-bool HiwonderBusServoOneShotGroupNode::readwrite_loop_function(
+bool HiwonderBusServoGroupNode::readwrite_loop_function(
     const HiwonderBusServoGroupState& state,
     HiwonderBusServoGroupCommand& command) {
     bool should_continue = !this->stop_requested();
@@ -305,7 +266,7 @@ bool HiwonderBusServoOneShotGroupNode::readwrite_loop_function(
     return should_continue;
 }
 
-void HiwonderBusServoOneShotGroupNode::child_thread_fn() {
+void HiwonderBusServoGroupNode::child_thread_fn() {
     auto fn = [this](const HiwonderBusServoGroupState& state, HiwonderBusServoGroupCommand& command) {
         return this->readwrite_loop_function(state, command);
     };

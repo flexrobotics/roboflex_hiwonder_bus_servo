@@ -51,7 +51,7 @@ long_description = (Path(__file__).parent / "README.md").read_text() if (Path(__
 
 setup(
     name="roboflex.hiwonder_bus_servo",
-    version="0.1.3",
+    version="0.1.4",
     description="Roboflex Hiwonder bus servo library",
     author="Colin Prepscius",
     author_email="colinprepscius@gmail.com",

@@ -112,48 +112,17 @@ protected:
 /**
  * Simple local hardware node for command-forwarding use cases.
  *
- * It stores the latest `HiwonderBusServoGroupCommandMessage`, writes that
- * command whenever the loop runs, and publishes `HiwonderBusServoGroupState`
- * messages according to the configured polling policy.
+ * It consumes each received `HiwonderBusServoGroupCommandMessage` at most once
+ * and publishes `HiwonderBusServoGroupState` messages according to the
+ * configured polling policy. This matches bus-servo usage much better than a
+ * latched "re-send the last command forever" model.
  */
-// A simple local servo node that forwards the latest command message to hardware.
 class HiwonderBusServoGroupNode : public core::RunnableNode {
 public:
     HiwonderBusServoGroupNode(
         HiwonderBusServoController::Ptr controller,
         DynamicReadConfig read_config,
         const std::string& name = "HBSGroupNode");
-
-    HiwonderBusServoController::Ptr controller;
-    DynamicReadConfig read_config;
-
-    void receive(core::MessagePtr m) override;
-
-protected:
-    bool readwrite_loop_function(
-        const HiwonderBusServoGroupState& state,
-        HiwonderBusServoGroupCommand& command);
-
-    void child_thread_fn() override;
-
-    std::recursive_mutex last_command_message_mutex;
-    std::shared_ptr<HiwonderBusServoGroupCommandMessage> last_command_message = nullptr;
-};
-
-/**
- * Local hardware node with one-shot command semantics.
- *
- * Unlike HiwonderBusServoGroupNode, this class consumes each received command
- * at most once. This is a better fit for bus-servo hardware where callers
- * typically want "send this timed move now" rather than "continuously re-send
- * the last move forever until something else arrives".
- */
-class HiwonderBusServoOneShotGroupNode : public core::RunnableNode {
-public:
-    HiwonderBusServoOneShotGroupNode(
-        HiwonderBusServoController::Ptr controller,
-        DynamicReadConfig read_config,
-        const std::string& name = "HBSOneShotNode");
 
     HiwonderBusServoController::Ptr controller;
     DynamicReadConfig read_config;
