@@ -407,21 +407,28 @@ optional<std::vector<uint8_t>> HiwonderBusServoController::Impl::transact_bus_se
     std::vector<uint8_t> payload {cmd, servo_id};
 
     for (int attempt = 0; attempt <= retries; ++attempt) {
+        tcflush(fd, TCIFLUSH);
         write_frame(kPacketFuncBusServo, payload);
-        auto [function_id, response] = read_frame(timeout_ms);
-        if (function_id != kPacketFuncBusServo || response.size() < 3) {
-            continue;
+
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+        while (std::chrono::steady_clock::now() < deadline) {
+            auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+                deadline - std::chrono::steady_clock::now()).count();
+            auto [function_id, response] = read_frame(static_cast<int>(std::max<int64_t>(remaining, 1)));
+            if (function_id != kPacketFuncBusServo || response.size() < 3) {
+                continue;
+            }
+            if (response[0] != servo_id) {
+                continue;
+            }
+            if (response[1] != cmd) {
+                continue;
+            }
+            if (response[2] != 0) {
+                return std::nullopt;
+            }
+            return response;
         }
-        if (response[0] != servo_id) {
-            continue;
-        }
-        if (response[1] != cmd) {
-            continue;
-        }
-        if (response[2] != 0) {
-            return std::nullopt;
-        }
-        return response;
     }
 
     return std::nullopt;
