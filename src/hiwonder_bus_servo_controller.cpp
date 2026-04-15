@@ -454,6 +454,14 @@ HiwonderBusServoController::~HiwonderBusServoController() = default;
 
 void HiwonderBusServoController::write_positions(const HiwonderBusServoGroupCommand& command) {
     if (!command.should_write) {
+        if (!command.positions.empty()) {
+            vector<ServoId> servo_ids;
+            servo_ids.reserve(command.positions.size());
+            for (const auto& [servo_id, _] : command.positions) {
+                servo_ids.push_back(servo_id);
+            }
+            stop(servo_ids);
+        }
         return;
     }
     write_positions_ms(command.duration_ms, command.positions);
